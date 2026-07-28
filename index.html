@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SELECT-like 5-year MACE Risk Calculator</title>
+<style>
+  :root {
+    --bg: #f4f7fb;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #d9e1ec;
+    --accent: #174a7e;
+    --accent2: #e8f1fa;
+    --low: #166534;
+    --lowbg: #dcfce7;
+    --high: #991b1b;
+    --highbg: #fee2e2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .container {
+    max-width: 920px;
+    margin: 32px auto;
+    padding: 0 18px 40px;
+  }
+  .header {
+    background: linear-gradient(135deg, #123f6d, #2c6da4);
+    color: white;
+    padding: 28px;
+    border-radius: 16px 16px 0 0;
+  }
+  .header h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+  }
+  .header p {
+    margin: 0;
+    line-height: 1.45;
+    opacity: .95;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: 0;
+    padding: 26px;
+    border-radius: 0 0 16px 16px;
+    box-shadow: 0 8px 30px rgba(25, 55, 85, 0.08);
+  }
+  .notice {
+    border-left: 5px solid var(--accent);
+    background: var(--accent2);
+    padding: 14px 16px;
+    margin-bottom: 22px;
+    line-height: 1.45;
+    font-size: 14px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 20px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  label {
+    font-weight: 700;
+    font-size: 14px;
+  }
+  input, select {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-size: 15px;
+    background: white;
+  }
+  input:focus, select:focus {
+    outline: 2px solid #9dc3e6;
+    border-color: var(--accent);
+  }
+  .buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  button {
+    border: 0;
+    border-radius: 9px;
+    padding: 12px 18px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .primary {
+    background: var(--accent);
+    color: white;
+  }
+  .secondary {
+    background: #e5e7eb;
+    color: #111827;
+  }
+  .result {
+    display: none;
+    margin-top: 24px;
+    border-radius: 13px;
+    padding: 22px;
+    border: 1px solid var(--border);
+  }
+  .result h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
+  }
+  .risk {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin: 6px 0;
+  }
+  .classbox {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-weight: 800;
+  }
+  .low { background: var(--lowbg); color: var(--low); }
+  .high { background: var(--highbg); color: var(--high); }
+  .details {
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .footer {
+    margin-top: 22px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  code {
+    background: #eef2f7;
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+  @media (max-width: 680px) {
+    .grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 23px; }
+    .risk { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>SELECT-like 5-year MACE Risk Calculator</h1>
+    <p>Estimation of individual 5-year risk of major adverse cardiovascular events in SELECT-like patients.</p>
+  </div>
+
+  <div class="card">
+    <div class="notice">
+      <strong>Designed for patients discharged after an ACS who have BMI ≥27 kg/m² and do not have diabetes.</strong>
+      This tool is intended for risk stratification and does not estimate the individual treatment effect.
+    </div>
+
+    <form id="riskForm">
+      <div class="grid">
+        <div class="field">
+          <label for="age">Age, years</label>
+          <input id="age" type="number" min="18" max="100" step="1" required>
+        </div>
+
+        <div class="field">
+          <label for="sex">Sex</label>
+          <select id="sex" required>
+            <option value="">Select</option>
+            <option value="0">Male</option>
+            <option value="1">Female</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="cad">Previous coronary artery disease</label>
+          <select id="cad"><option value="0">No</option><option value="1">Yes</option></select>
+        </div>
+
+        <div class="field">
+          <label for="hfprev">Previous heart failure</label>
+          <select id="hfprev"><option value="0">No</option><option value="1">Yes</option></select>
+        </div>
+
+        <div class="field">
+          <label for="ckd">Chronic kidney disease, eGFR &lt;60 mL/min/1.73 m²</label>
+          <select id="ckd"><option value="0">No</option><option value="1">Yes</option></select>
+        </div>
+
+        <div class="field">
+          <label for="hta">Hypertension</label>
+          <select id="hta"><option value="0">No</option><option value="1">Yes</option></select>
+        </div>
+
+        <div class="field">
+          <label for="hfin">Heart failure during index hospitalization</label>
+          <select id="hfin"><option value="0">No</option><option value="1">Yes</option></select>
+        </div>
+
+        <div class="field">
+          <label for="af">Previous atrial fibrillation</label>
+          <select id="af"><option value="0">No</option><option value="1">Yes</option></select>
+        </div>
+
+        <div class="field">
+          <label for="stemi">ST-segment elevation myocardial infarction</label>
+          <select id="stemi"><option value="0">No</option><option value="1">Yes</option></select>
+        </div>
+
+        <div class="field">
+          <label for="revasc">Revascularization during index hospitalization</label>
+          <select id="revasc"><option value="0">No</option><option value="1">Yes</option></select>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button class="primary" type="submit">Calculate risk</button>
+        <button class="secondary" type="button" id="resetBtn">Reset</button>
+      </div>
+    </form>
+
+    <div id="result" class="result" aria-live="polite">
+      <h2>Result</h2>
+      <div id="riskValue" class="risk">—</div>
+      <div id="classValue" class="classbox">—</div>
+      <div class="details">
+        Prespecified threshold: <strong>33%</strong>.<br>
+        Risk &lt;33%: Low-risk SELECT-like. Risk ≥33%: High-risk SELECT-like.
+      </div>
+    </div>
+
+    <div class="footer">
+      <strong>Model:</strong> flexible parametric survival model with a 5-year prediction horizon.
+      Formula: risk = 100 × [1 − 0.9557053<sup>exp(LP)</sup>].<br>
+      <strong>Disclaimer:</strong> for research and clinical risk-stratification support only. It does not replace clinical judgment or establish a treatment indication.
+    </div>
+  </div>
+</div>
+
+<script>
+const COEFFICIENTS = {
+  age: 0.02832188,
+  sex: -0.14483426,
+  cad: 0.40547575,
+  hfprev: 0.37175968,
+  ckd: 0.36349353,
+  hta: 0.00492940,
+  hfin: 0.56939034,
+  af: 0.36246400,
+  stemi: -0.05903242,
+  revasc: 0.12039425
+};
+
+const BASELINE_SURVIVAL_5Y = 0.9557053;
+const HIGH_RISK_CUTOFF = 33.0;
+
+function getNumber(id) {
+  return Number(document.getElementById(id).value);
+}
+
+function calculateRisk() {
+  const values = {
+    age: getNumber("age"),
+    sex: getNumber("sex"),
+    cad: getNumber("cad"),
+    hfprev: getNumber("hfprev"),
+    ckd: getNumber("ckd"),
+    hta: getNumber("hta"),
+    hfin: getNumber("hfin"),
+    af: getNumber("af"),
+    stemi: getNumber("stemi"),
+    revasc: getNumber("revasc")
+  };
+
+  const lp =
+    COEFFICIENTS.age * values.age +
+    COEFFICIENTS.sex * values.sex +
+    COEFFICIENTS.cad * values.cad +
+    COEFFICIENTS.hfprev * values.hfprev +
+    COEFFICIENTS.ckd * values.ckd +
+    COEFFICIENTS.hta * values.hta +
+    COEFFICIENTS.hfin * values.hfin +
+    COEFFICIENTS.af * values.af +
+    COEFFICIENTS.stemi * values.stemi +
+    COEFFICIENTS.revasc * values.revasc;
+
+  const risk = 100 * (1 - Math.pow(BASELINE_SURVIVAL_5Y, Math.exp(lp)));
+  return Math.max(0, Math.min(100, risk));
+}
+
+document.getElementById("riskForm").addEventListener("submit", function(event) {
+  event.preventDefault();
+
+  const age = getNumber("age");
+  const sexValue = document.getElementById("sex").value;
+
+  if (!Number.isFinite(age) || age < 18 || age > 100 || sexValue === "") {
+    alert("Please check age and sex.");
+    return;
+  }
+
+  const risk = calculateRisk();
+  const highRisk = risk >= HIGH_RISK_CUTOFF;
+
+  const result = document.getElementById("result");
+  const riskValue = document.getElementById("riskValue");
+  const classValue = document.getElementById("classValue");
+
+  riskValue.textContent = risk.toFixed(1) + "%";
+  classValue.textContent = highRisk
+    ? "High-risk SELECT-like"
+    : "Low-risk SELECT-like";
+
+  classValue.className = "classbox " + (highRisk ? "high" : "low");
+  result.style.display = "block";
+  result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
+
+document.getElementById("resetBtn").addEventListener("click", function() {
+  document.getElementById("riskForm").reset();
+  document.getElementById("result").style.display = "none";
+});
+</script>
+</body>
+</html>
